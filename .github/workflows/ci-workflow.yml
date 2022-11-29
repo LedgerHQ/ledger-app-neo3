@@ -99,6 +99,7 @@ jobs:
 
       - name: Generate code coverage
         run: |
+          apk add curl
           cd unit-tests/
           lcov --directory . -b "$(realpath build/)" --capture --initial -o coverage.base && \
           lcov --rc lcov_branch_coverage=1 --directory . -b "$(realpath build/)" --capture -o coverage.capture && \
