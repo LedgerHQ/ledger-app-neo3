@@ -27,13 +27,12 @@ def test_get_public_key_confirm_ok(backend, firmware, navigator, test_name):
                                                       path=ROOT_SCREENSHOT_PATH,
                                                       test_case_name=test_name)
         elif backend.firmware.device == "stax":
-            nav_ins = []
-            # nav_ins.append(NavInsID.USE_CASE_ADDRESS_CONFIRMATION_SHOW_QR)
-            nav_ins.append(NavIns(NavInsID.TOUCH, (197,276)))
-            nav_ins.append(NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR)
-            nav_ins.append(NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM)
+            nav_ins = [NavInsID.USE_CASE_REVIEW_TAP,
+                       NavIns(NavInsID.TOUCH, (197,276)),
+                       NavInsID.USE_CASE_ADDRESS_CONFIRMATION_EXIT_QR,
+                       NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
+                       NavInsID.USE_CASE_STATUS_DISMISS]
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, nav_ins)
-
 
     pub_key = backend.last_async_response.data
 
@@ -52,7 +51,9 @@ def test_get_public_key_confirm_refused(backend, firmware, navigator, test_name)
                                                       path=ROOT_SCREENSHOT_PATH,
                                                       test_case_name=test_name)
         elif backend.firmware.device == "stax":
-            nav_ins = [NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL]
+            nav_ins = [NavInsID.USE_CASE_REVIEW_TAP,
+                       NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL,
+                       NavInsID.USE_CASE_STATUS_DISMISS]
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, nav_ins)
 
     rapdu = backend.last_async_response
