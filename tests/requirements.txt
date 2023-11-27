@@ -2,6 +2,5 @@ pytest
 ragger[speculos]
 ragger[ledgerwallet]
 Jinja2==3.1.2
-Flask==2.1.2
 ecdsa>=0.16.1,<0.17.0
-neo-mamba==1.0.0
+neo-mamba
