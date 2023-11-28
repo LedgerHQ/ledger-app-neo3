@@ -127,7 +127,7 @@ def test_arbitrary_scripts_refused(backend, firmware, navigator, test_name):
         if backend.firmware.device.startswith("nano"):
             navigator.navigate_until_text_and_compare(navigate_instruction=NavInsID.RIGHT_CLICK,
                                                       validation_instructions=[NavInsID.BOTH_CLICK],
-                                                      text="abort",
+                                                      text="Understood, abort..",
                                                       path=ROOT_SCREENSHOT_PATH,
                                                       test_case_name=test_name)
         elif backend.firmware.device == "stax":
