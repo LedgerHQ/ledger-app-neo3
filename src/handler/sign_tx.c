@@ -58,7 +58,7 @@ int handler_sign_tx(buffer_t *cdata, uint8_t chunk, bool more) {
         return io_send_sw(SW_OK);
     } else {  // Receive transaction
         if (G_context.req_type != CONFIRM_TRANSACTION && G_context.state != STATE_MAGIC_OK) {
-            return io_send_sw(SW_BAD_STATE);    
+            return io_send_sw(SW_BAD_STATE);
         }
 
         if (more) {  // APDU with another transaction part

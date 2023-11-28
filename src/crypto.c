@@ -24,18 +24,22 @@
 #include "globals.h"
 #include "sw.h"
 
-
-int crypto_derive_private_key(cx_ecfp_private_key_t *private_key, const uint32_t *bip32_path, uint8_t bip32_path_len) {
-    
+int crypto_derive_private_key(cx_ecfp_private_key_t *private_key, const uint32_t *bip32_path, uint8_t bip32_path_len) {    
     cx_err_t error = CX_OK;
     uint8_t raw_private_key[64] = {0};
 
-    CX_CHECK(os_derive_bip32_with_seed_no_throw(
-        0, CX_CURVE_256R1, bip32_path, bip32_path_len, raw_private_key, NULL, NULL, 0));
+    CX_CHECK(os_derive_bip32_with_seed_no_throw(0,
+                                                CX_CURVE_256R1,
+                                                bip32_path,
+                                                bip32_path_len,
+                                                raw_private_key,
+                                                NULL,
+                                                NULL,
+                                                0));
 
     CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_256R1, raw_private_key, 32, private_key));
-    
-end: 
+
+end:
     explicit_bzero(&raw_private_key, sizeof(raw_private_key));
     if (error != CX_OK) {
         // Make sure the caller doesn't use uninitialized data in case
@@ -44,13 +48,11 @@ end:
         return -1;
     }
     return 0;
-
 }
 
 int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                            cx_ecfp_public_key_t *public_key,
                            uint8_t raw_public_key[static 64]) {
-    
     cx_err_t error = CX_OK;
 
     // generate corresponding public key
@@ -59,8 +61,8 @@ int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
 end:
     if (error != CX_OK) {
         return -1;
-    } 
-    
+    }
+
     memcpy(raw_public_key, public_key->W + 1, 64);
 
     return 0;
@@ -85,29 +87,29 @@ int crypto_sign_tx() {
     cx_sha256_t msg_hash;
     cx_sha256_init(&msg_hash);
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &msg_hash,
-            CX_LAST /*mode*/,
-            data /* data in */,
-            sizeof(data) /* data in len */,
-            message_hash /* hash out*/,
-            sizeof(message_hash) /* hash out len */));
+                              CX_LAST /*mode*/,
+                              data /* data in */,
+                              sizeof(data) /* data in len */,
+                              message_hash /* hash out*/,
+                              sizeof(message_hash) /* hash out len */));
 
     CX_CHECK(cx_ecdsa_sign_no_throw(&private_key,
-                            CX_RND_RFC6979 | CX_LAST,
-                            CX_SHA256,
-                            message_hash,
-                            sizeof(message_hash),
-                            G_context.tx_info.signature,
-                            &sig_len,
-                            NULL));
+                                    CX_RND_RFC6979 | CX_LAST,
+                                    CX_SHA256,
+                                    message_hash,
+                                    sizeof(message_hash),
+                                    G_context.tx_info.signature,
+                                    &sig_len,
+                                    NULL));
     PRINTF("Private key:%.*H\n", 32, private_key.d);
     PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
-      
+
 end:
     explicit_bzero(&private_key, sizeof(cx_ecfp_256_private_key_t));
     if (error != CX_OK) {
         PRINTF("In crypto_sign: ERROR %x \n", error);
         return -1;
-    } 
+    }
 
     G_context.tx_info.signature_len = sig_len;
 
