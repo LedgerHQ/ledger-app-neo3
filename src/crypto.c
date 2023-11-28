@@ -67,7 +67,8 @@ end:
 }
 
 int crypto_sign_tx() {
-    int sig_len = 0;
+    size_t sig_len = sizeof(G_context.tx_info.signature);
+    cx_err_t error = CX_OK;
 
     // derive private key according to BIP44 path
     cx_ecfp_private_key_t private_key = {0};
@@ -83,38 +84,30 @@ int crypto_sign_tx() {
     uint8_t message_hash[32] = {0};
     cx_sha256_t msg_hash;
     cx_sha256_init(&msg_hash);
-    cx_hash((cx_hash_t *) &msg_hash,
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &msg_hash,
             CX_LAST /*mode*/,
             data /* data in */,
             sizeof(data) /* data in len */,
             message_hash /* hash out*/,
-            sizeof(message_hash) /* hash out len */);
+            sizeof(message_hash) /* hash out len */));
 
-    BEGIN_TRY {
-        TRY {
-            sig_len = cx_ecdsa_sign(&private_key,
-                                    CX_RND_RFC6979 | CX_LAST,
-                                    CX_SHA256,
-                                    message_hash,
-                                    sizeof(message_hash),
-                                    G_context.tx_info.signature,
-                                    sizeof(G_context.tx_info.signature),
-                                    NULL);
-            PRINTF("Private key:%.*H\n", 32, private_key.d);
-            PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            explicit_bzero(&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
-
-    if (sig_len < 0) {
+    CX_CHECK(cx_ecdsa_sign_no_throw(&private_key,
+                            CX_RND_RFC6979 | CX_LAST,
+                            CX_SHA256,
+                            message_hash,
+                            sizeof(message_hash),
+                            G_context.tx_info.signature,
+                            &sig_len,
+                            NULL));
+    PRINTF("Private key:%.*H\n", 32, private_key.d);
+    PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
+      
+end:
+    explicit_bzero(&private_key, sizeof(cx_ecfp_256_private_key_t));
+    if (error != CX_OK) {
+        PRINTF("In crypto_sign: ERROR %x \n", error);
         return -1;
-    }
+    } 
 
     G_context.tx_info.signature_len = sig_len;
 

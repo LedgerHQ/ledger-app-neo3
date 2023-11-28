@@ -59,9 +59,9 @@ void public_key_hash160(const unsigned char* in, unsigned short inlen, unsigned 
     unsigned char buffer[32];
 
     cx_sha256_init(&u.shasha);
-    cx_hash(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
+    cx_hash_no_throw(&u.shasha.header, CX_LAST, in, inlen, buffer, 32);
     cx_ripemd160_init(&u.riprip);
-    cx_hash(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
+    cx_hash_no_throw(&u.riprip.header, CX_LAST, buffer, 32, out, 20);
 }
 
 void script_hash_to_address(char* out, size_t out_len, const unsigned char* script_hash) {
@@ -75,9 +75,9 @@ void script_hash_to_address(char* out, size_t out_len, const unsigned char* scri
 
     // do a sha256 hash of the address twice.
     cx_sha256_init(&data_hash);
-    cx_hash(&data_hash.header, CX_LAST, address, UINT160_LEN + 1, data_hash_1, 32);
+    cx_hash_no_throw(&data_hash.header, CX_LAST, address, UINT160_LEN + 1, data_hash_1, 32);
     cx_sha256_init(&data_hash);
-    cx_hash(&data_hash.header, CX_LAST, data_hash_1, SHA256_HASH_LEN, data_hash_2, 32);
+    cx_hash_no_throw(&data_hash.header, CX_LAST, data_hash_1, SHA256_HASH_LEN, data_hash_2, 32);
 
     // the first 4 bytes of the final hash is the checksum for base58check encode
     // append to the end of the data
