@@ -24,7 +24,7 @@
 #include "globals.h"
 #include "sw.h"
 
-int crypto_derive_private_key(cx_ecfp_private_key_t *private_key, const uint32_t *bip32_path, uint8_t bip32_path_len) {    
+int crypto_derive_private_key(cx_ecfp_private_key_t *private_key, const uint32_t *bip32_path, uint8_t bip32_path_len) {
     cx_err_t error = CX_OK;
     uint8_t raw_private_key[64] = {0};
 
