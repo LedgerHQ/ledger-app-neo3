@@ -1,7 +1,7 @@
 #pragma once
 
 #include "types.h"
-#include "../common/buffer.h"
+#include "common/buffer.h"
 
 /**
  * Deserialize raw transaction in structure.

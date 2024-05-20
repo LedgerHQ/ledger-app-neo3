@@ -18,11 +18,11 @@
 #include <stdint.h>  // uint*_t
 
 #include "get_app_name.h"
-#include "../constants.h"
-#include "../globals.h"
-#include "../io.h"
-#include "../sw.h"
-#include "../types.h"
+#include "constants.h"
+#include "globals.h"
+#include "io.h"
+#include "sw.h"
+#include "types.h"
 #include "common/buffer.h"
 
 int handler_get_app_name() {

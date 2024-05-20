@@ -3,9 +3,9 @@
 #include <string.h>  // memcpy
 
 #include "send_response.h"
-#include "../constants.h"
-#include "../globals.h"
-#include "../sw.h"
+#include "constants.h"
+#include "globals.h"
+#include "sw.h"
 #include "common/buffer.h"
 
 int helper_send_response_pubkey() {

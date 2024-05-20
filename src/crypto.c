@@ -22,34 +22,46 @@
 #include "crypto.h"
 
 #include "globals.h"
-#include "../sw.h"
+#include "sw.h"
 
 int crypto_derive_private_key(cx_ecfp_private_key_t *private_key, const uint32_t *bip32_path, uint8_t bip32_path_len) {
-    uint8_t raw_private_key[32] = {0};
+    cx_err_t error = CX_OK;
+    uint8_t raw_private_key[64] = {0};
 
-    BEGIN_TRY {
-        TRY {
-            // derive the seed with bip32_path
-            os_perso_derive_node_bip32(CX_CURVE_256R1, bip32_path, bip32_path_len, raw_private_key, NULL);
-            cx_ecfp_init_private_key(CX_CURVE_256R1, raw_private_key, sizeof(raw_private_key), private_key);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            explicit_bzero(&raw_private_key, sizeof(raw_private_key));
-        }
+    CX_CHECK(os_derive_bip32_with_seed_no_throw(0,
+                                                CX_CURVE_256R1,
+                                                bip32_path,
+                                                bip32_path_len,
+                                                raw_private_key,
+                                                NULL,
+                                                NULL,
+                                                0));
+
+    CX_CHECK(cx_ecfp_init_private_key_no_throw(CX_CURVE_256R1, raw_private_key, 32, private_key));
+
+end:
+    explicit_bzero(&raw_private_key, sizeof(raw_private_key));
+    if (error != CX_OK) {
+        // Make sure the caller doesn't use uninitialized data in case
+        // the return code is not checked.
+        explicit_bzero(private_key, sizeof(cx_ecfp_256_private_key_t));
+        return -1;
     }
-    END_TRY;
-
     return 0;
 }
 
 int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
                            cx_ecfp_public_key_t *public_key,
                            uint8_t raw_public_key[static 64]) {
+    cx_err_t error = CX_OK;
+
     // generate corresponding public key
-    cx_ecfp_generate_pair(CX_CURVE_256R1, public_key, private_key, 1);
+    CX_CHECK(cx_ecfp_generate_pair_no_throw(CX_CURVE_256R1, public_key, private_key, true));
+
+end:
+    if (error != CX_OK) {
+        return -1;
+    }
 
     memcpy(raw_public_key, public_key->W + 1, 64);
 
@@ -57,7 +69,8 @@ int crypto_init_public_key(cx_ecfp_private_key_t *private_key,
 }
 
 int crypto_sign_tx() {
-    int sig_len = 0;
+    size_t sig_len = sizeof(G_context.tx_info.signature);
+    cx_err_t error = CX_OK;
 
     // derive private key according to BIP44 path
     cx_ecfp_private_key_t private_key = {0};
@@ -73,36 +86,28 @@ int crypto_sign_tx() {
     uint8_t message_hash[32] = {0};
     cx_sha256_t msg_hash;
     cx_sha256_init(&msg_hash);
-    cx_hash((cx_hash_t *) &msg_hash,
-            CX_LAST /*mode*/,
-            data /* data in */,
-            sizeof(data) /* data in len */,
-            message_hash /* hash out*/,
-            sizeof(message_hash) /* hash out len */);
+    CX_CHECK(cx_hash_no_throw((cx_hash_t *) &msg_hash,
+                              CX_LAST /*mode*/,
+                              data /* data in */,
+                              sizeof(data) /* data in len */,
+                              message_hash /* hash out*/,
+                              sizeof(message_hash) /* hash out len */));
 
-    BEGIN_TRY {
-        TRY {
-            sig_len = cx_ecdsa_sign(&private_key,
+    CX_CHECK(cx_ecdsa_sign_no_throw(&private_key,
                                     CX_RND_RFC6979 | CX_LAST,
                                     CX_SHA256,
                                     message_hash,
                                     sizeof(message_hash),
                                     G_context.tx_info.signature,
-                                    sizeof(G_context.tx_info.signature),
-                                    NULL);
-            PRINTF("Private key:%.*H\n", 32, private_key.d);
-            PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
-        }
-        CATCH_OTHER(e) {
-            THROW(e);
-        }
-        FINALLY {
-            explicit_bzero(&private_key, sizeof(private_key));
-        }
-    }
-    END_TRY;
+                                    &sig_len,
+                                    NULL));
+    PRINTF("Private key:%.*H\n", 32, private_key.d);
+    PRINTF("Signature: %.*H\n", sig_len, G_context.tx_info.signature);
 
-    if (sig_len < 0) {
+end:
+    explicit_bzero(&private_key, sizeof(cx_ecfp_256_private_key_t));
+    if (error != CX_OK) {
+        PRINTF("In crypto_sign: ERROR %x \n", error);
         return -1;
     }
 

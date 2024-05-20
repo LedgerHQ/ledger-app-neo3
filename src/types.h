@@ -4,7 +4,7 @@
 #include <stdint.h>  // uint*_t
 
 #include "constants.h"
-#include "transaction/types.h"
+#include "transaction/transaction_types.h"
 
 /**
  * Enumeration for the status of IO.

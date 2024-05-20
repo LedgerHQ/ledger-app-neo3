@@ -1,10 +1,7 @@
 # Compilation of Ledger's app
-src/glyphs.c
-src/glyphs.h
+build/
 bin/
 debug/
-dep/
-obj/
 
 # Unit tests and code coverage
 unit-tests/build/
@@ -25,6 +22,7 @@ __pycache__/
 *.egg-info/
 .eggs/
 .python-version
+tests/snapshots-tmp/
 
 # Doxygen
 doc/html

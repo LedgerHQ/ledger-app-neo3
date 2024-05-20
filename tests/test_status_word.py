@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import re
 
-from boilerplate_client.exception import DeviceException
+from apps.exception import DeviceException
 
 
 SW_RE = re.compile(r"""(?x)
@@ -25,7 +25,15 @@ def parse_sw(path: Path) -> List[Tuple[str, int]]:
             for identifier, sw in SW_RE.findall(sw_h) if sw != "9000"]
 
 
-def test_status_word(sw_h_path):
+def test_status_word():
+    # path with tests
+    conftest_folder_path: Path = Path(__file__).parent
+    # sw.h should be in src/sw.h
+    sw_h_path = conftest_folder_path.parent / "src" / "sw.h"
+
+    if not sw_h_path.is_file():
+        raise FileNotFoundError(f"Can't find sw.h: '{sw_h_path}'")
+
     expected_status_words: List[Tuple[str, int]] = parse_sw(sw_h_path)
     status_words: Dict[int, Any] = DeviceException.exc
 

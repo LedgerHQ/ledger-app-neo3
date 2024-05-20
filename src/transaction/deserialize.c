@@ -18,7 +18,7 @@
 #include "deserialize.h"
 #include "types.h"
 #include "constants.h"
-#include "../common/buffer.h"
+#include "common/buffer.h"
 #include "tx_utils.h"
 
 #include <string.h>

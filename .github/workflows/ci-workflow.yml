@@ -1,82 +1,60 @@
 name: Compilation & tests
 
-on: [workflow_dispatch, push, pull_request]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
 
 jobs:
-  job_build_debug:
-    name: Build debug
-    runs-on: ubuntu-latest
+  build_application:
+    name: Build application using the reusable workflow
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
+    with:
+      upload_app_binaries_artifact: "compiled_app_binaries"
 
+  ragger_tests:
+    name: Run ragger tests using the reusable workflow
+    needs: build_application
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
+    with:
+      download_app_binaries_artifact: "compiled_app_binaries"
+      test_dir: tests
+
+  analyse:
+    name: Analyse
+    strategy:
+      matrix:
+        sdk: ["$NANOS_SDK", "$NANOX_SDK", "$NANOSP_SDK"]
+        #'cpp' covers C and C++
+        language: ["cpp"]
+    runs-on: ubuntu-latest
     container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder-legacy:latest
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      # CodeQL will create the database during the compilation
       - name: Build
         run: |
-          make DEBUG=1
+          make BOLOS_SDK=${{ matrix.sdk }}
 
-      - name: Upload app binary
-        uses: actions/upload-artifact@v2
-        with:
-          name: boilerplate-app-debug
-          path: bin
-
-  job_scan_build:
-    name: Clang Static Analyzer
-    needs: job_build_debug
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Build with Clang Static Analyzer
-        run: |
-          make clean
-          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
-      - uses: actions/upload-artifact@v2
-        if: failure()
-        with:
-          name: scan-build
-          path: scan-build
-
-  job_coverity_scan:
-    name: Coverity Scan
-    needs: job_build_debug
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-scanner:latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Build with cov-build
-        run: |
-          make clean
-          cov-build --dir cov-int make default
-      - name: Submit the result to Coverity Scan
-        run: |
-          tar czvf cov-int.tar.gz cov-int
-          curl \
-            --form token=$TOKEN \
-            --form email=$EMAIL \
-            --form file=@cov-int.tar.gz \
-            --form version=master \
-            --form description="NEO3 app" \
-            https://scan.coverity.com/builds?project=LedgerHQ%2Fapp-neo3
-        env:
-          EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
-          TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
   job_unit_test:
     name: Unit test
-    needs: job_build_debug
+    needs: build_application
     runs-on: ubuntu-latest
 
     container:
@@ -84,7 +62,7 @@ jobs:
 
     steps:
       - name: Clone
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build unit tests
         run: |
@@ -100,62 +78,25 @@ jobs:
           lcov --directory . -b "$(realpath build/)" --remove coverage.info '*/unit-tests/*' -o coverage.info && \
           genhtml coverage.info -o coverage
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: code-coverage
           path: unit-tests/coverage
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./unit-tests/coverage.info
+          files: ./unit-tests/coverage.info
           flags: unittests
-          name: codecov-app-neo3
+          name: codecov-app-neo_n3
           fail_ci_if_error: true
           verbose: true
 
       - name: HTML documentation
         run: doxygen .doxygen/Doxyfile
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: documentation
           path: doc/html
-
-  job_test:
-    name: Test
-    needs: job_build_debug
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/speculos:latest
-      options: --entrypoint /bin/bash
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-
-      - name: Download app binary
-        uses: actions/download-artifact@v2
-        with:
-          name: boilerplate-app-debug
-          path: bin
-
-      - name: Install dependencies
-        run: |
-          apt update && apt install -qy gcc netcat  # /!\ workaround for pysha3
-          pip install -r tests/requirements.txt
-
-      - name: Run test
-        run: |
-          nohup bash -c "python /speculos/speculos.py bin/app.elf --sdk 2.1 --apdu-port 9999 --button-port 42000 --automation-port 43000 --display headless" > speculos.log 2<&1 &
-          until `nc -w5 -z -v 127.0.0.1 9999`; do sleep 1; done;
-          cd tests && pytest --headless
-
-      - name: Upload Speculos log
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
-        with:
-          name: speculos-log
-          path: speculos.log

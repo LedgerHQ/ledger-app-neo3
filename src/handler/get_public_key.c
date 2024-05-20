@@ -25,15 +25,15 @@
 #include "cx.h"
 
 #include "get_public_key.h"
-#include "../globals.h"
-#include "../types.h"
-#include "../io.h"
-#include "../sw.h"
-#include "../crypto.h"
-#include "../common/buffer.h"
-#include "../common/bip44.h"
-#include "../ui/display.h"
-#include "../helper/send_response.h"
+#include "globals.h"
+#include "types.h"
+#include "io.h"
+#include "sw.h"
+#include "crypto.h"
+#include "common/buffer.h"
+#include "common/bip44.h"
+#include "helper/send_response.h"
+#include "ui_get_public_key.h"
 
 int handler_get_public_key(buffer_t *cdata, bool show_on_screen) {
     explicit_bzero(&G_context, sizeof(G_context));

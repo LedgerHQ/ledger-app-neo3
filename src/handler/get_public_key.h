@@ -4,8 +4,8 @@
 #include <stdbool.h>  // bool
 #include <stdint.h>   // uint*_t
 
-#include "../types.h"
-#include "../common/buffer.h"
+#include "types.h"
+#include "common/buffer.h"
 
 /**
  * Handler for GET_PUBLIC_KEY command. If the BIP44 path is parsed successfully

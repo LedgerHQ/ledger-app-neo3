@@ -20,11 +20,11 @@
 #include <assert.h>  // _Static_assert
 
 #include "get_version.h"
-#include "../globals.h"
-#include "../constants.h"
-#include "../io.h"
-#include "../sw.h"
-#include "../types.h"
+#include "globals.h"
+#include "constants.h"
+#include "io.h"
+#include "sw.h"
+#include "types.h"
 #include "common/buffer.h"
 
 int handler_get_version() {
