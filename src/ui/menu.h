@@ -5,4 +5,4 @@
  */
 void ui_menu_main(void);
 
-void ui_menu_settings(void);
+void ui_menu_settings(bool confirm);

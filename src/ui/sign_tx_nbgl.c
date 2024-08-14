@@ -67,12 +67,10 @@ typedef struct dynamic_slot_s {
     char text[64];
 } dynamic_slot_t;
 
-static void start_review(void);
-static void rejectUseCaseChoice(void);
-static nbgl_layoutTagValueList_t layout;
-static nbgl_pageInfoLongPress_t review_final_long_press;
-static nbgl_layoutTagValue_t current_pair;
-static nbgl_layoutTagValue_t static_items[MAX_NUM_STEPS + 1];
+static nbgl_contentTagValueList_t content;
+static const char *review_final_long_press_text;
+static nbgl_contentTagValue_t current_pair;
+static nbgl_contentTagValue_t static_items[MAX_NUM_STEPS + 1];
 static dynamic_slot_t dyn_slots[NB_MAX_DISPLAYED_PAIRS_IN_REVIEW];
 static uint8_t static_items_nb;
 // Reserve space for preparing the dynamic items (signer) display. At the moment 42 elements max
@@ -87,10 +85,10 @@ static void create_transaction_flow(void) {
 
     if (G_context.tx_info.transaction.is_vote_script) {
         if (G_context.tx_info.transaction.is_remove_vote) {
-            review_final_long_press.text = "Sign transaction to\nretract vote?";
+            review_final_long_press_text = "Sign transaction to\nretract vote?";
             review_title = "Review transaction to\nretract vote";
         } else {
-            review_final_long_press.text = "Sign transaction to\ncast vote?";
+            review_final_long_press_text = "Sign transaction to\ncast vote?";
             review_title = "Review transaction to\ncast vote";
         }
     } else if (G_context.tx_info.transaction.is_system_asset_transfer) {
@@ -102,14 +100,14 @@ static void create_transaction_flow(void) {
         ++static_items_nb;
 
         if (G_context.tx_info.transaction.is_neo) {
-            review_final_long_press.text = "Sign transaction to\nsend NEO?";
+            review_final_long_press_text = "Sign transaction to\nsend NEO?";
             review_title = "Review transaction to\nsend NEO";
         } else {
-            review_final_long_press.text = "Sign transaction to\nsend GAS?";
+            review_final_long_press_text = "Sign transaction to\nsend GAS?";
             review_title = "Review transaction to\nsend GAS";
         }
     } else {
-        review_final_long_press.text = "Sign script?";
+        review_final_long_press_text = "Sign script?";
         review_title = "Review transaction\nto sign script";
     }
 
@@ -162,23 +160,17 @@ static void create_transaction_flow(void) {
     }
 }
 
+
 static void review_final_callback(bool confirmed) {
     if (confirmed) {
         ui_action_validate_transaction(true, false);
-        nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_menu_main);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_menu_main);
     } else {
-        rejectUseCaseChoice();
+        ui_action_validate_transaction(false, false);
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
     }
 }
 
-static void rejectChoice(void) {
-    ui_action_validate_transaction(false, false);
-    nbgl_useCaseStatus("Transaction\nrejected", false, ui_menu_main);
-}
-
-static void rejectUseCaseChoice(void) {
-    nbgl_useCaseConfirm("Reject transaction?", NULL, "Yes, reject", "Go back to transaction", rejectChoice);
-}
 
 static void format_tag_value(dynamic_slot_t *slot, const dynamic_item_t *item) {
     signer_t s = G_context.tx_info.transaction.signers[item->content.as_item_scope.signer_index];
@@ -220,7 +212,7 @@ static void format_tag_value(dynamic_slot_t *slot, const dynamic_item_t *item) {
 }
 
 // function called by NBGL to get the current_pair indexed by "index"
-static nbgl_layoutTagValue_t *get_single_action_review_pair(uint8_t index) {
+static nbgl_contentTagValue_t *get_single_action_review_pair(uint8_t index) {
     current_pair.valueIcon = NULL;
     if (index < static_items_nb) {
         // No need to copy to dyn_slots as item and value are pointers to static values
@@ -236,38 +228,16 @@ static nbgl_layoutTagValue_t *get_single_action_review_pair(uint8_t index) {
     return &current_pair;
 }
 
-static void start_review(void) {
-    layout.nbMaxLinesForValue = 0;
-    layout.smallCaseForValue = false;
-    layout.wrapping = true;
-    layout.pairs = NULL;  // to indicate that callback should be used
-    layout.callback = get_single_action_review_pair;
-    layout.startIndex = 0;
-    layout.nbPairs = static_items_nb + dyn_items_nb;
-
-    // review_final_long_press.text is handled in create_transaction_flow()
-    review_final_long_press.icon = &C_icon_neo_n3_64x64;
-    review_final_long_press.longPressText = "Hold to sign";
-    review_final_long_press.longPressToken = 0;
-    review_final_long_press.tuneId = TUNE_TAP_CASUAL;
-
-    nbgl_useCaseStaticReview(&layout, &review_final_long_press, "Reject transaction", review_final_callback);
-}
-
 static void arbitrary_script_rejection_callback(bool confirmed) {
     ui_action_validate_transaction(false, false);
-    if (confirmed) {
-        ui_menu_settings();
-    } else {
-        ui_menu_main();
-    }
+    ui_menu_settings(confirmed);
 }
 
 void start_sign_tx_ui(void) {
     if (!G_context.tx_info.transaction.is_system_asset_transfer && !G_context.tx_info.transaction.is_vote_script &&
         !N_storage.scriptsAllowed) {
         // TODO: maybe add a mechanism to resume the transaction if the user allows the setting
-        nbgl_useCaseChoice(&C_warning64px,
+        nbgl_useCaseChoice(&C_Warning_64px,
                            "Arbitrary contract\nscripts are not allowed.",
                            "Go to the Settings menu to\nenable the signing of such\ntransactions.\n\nThis "
                            "transaction\nwill be rejected.",
@@ -278,12 +248,22 @@ void start_sign_tx_ui(void) {
         // Prepare steps
         create_transaction_flow();
         // start display
-        nbgl_useCaseReviewStart(&C_icon_neo_n3_64x64,
-                                review_title,
-                                "",
-                                "Reject transaction",
-                                start_review,
-                                rejectUseCaseChoice);
+        content.nbMaxLinesForValue = 0;
+        content.smallCaseForValue = false;
+        content.wrapping = true;
+        content.pairs = NULL;  // to indicate that callback should be used
+        content.callback = get_single_action_review_pair;
+        content.startIndex = 0;
+        content.nbPairs = static_items_nb + dyn_items_nb;
+
+        nbgl_useCaseReview(
+            TYPE_TRANSACTION,
+            &content,
+            &C_icon_neo_n3_64x64,
+            review_title,
+            NULL,
+            review_final_long_press_text,
+            review_final_callback);
     }
 }
 

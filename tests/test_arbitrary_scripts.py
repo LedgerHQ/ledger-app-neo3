@@ -59,9 +59,9 @@ def test_arbitrary_scripts_allowed(backend, firmware, navigator, test_name):
                                                   path=ROOT_SCREENSHOT_PATH,
                                                   test_case_name=test_name + "_0",
                                                   screen_change_before_first_instruction=False)
-    elif backend.firmware.device == "stax":
+    elif backend.firmware.device == "stax" or backend.firmware.device == "flex":
         nav_ins = [NavInsID.USE_CASE_HOME_SETTINGS,
-                   NavInsID.USE_CASE_SETTINGS_NEXT,
+
                    NavIns(NavInsID.TOUCH, (350,115)),
                    NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT]
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + "_0", nav_ins, screen_change_before_first_instruction=False)
@@ -76,9 +76,8 @@ def test_arbitrary_scripts_allowed(backend, firmware, navigator, test_name):
                                                       text="Approve",
                                                       path=ROOT_SCREENSHOT_PATH,
                                                       test_case_name=test_name + "_1")
-
-        elif backend.firmware.device == "stax":
-            navigator.navigate_until_text_and_compare(NavInsID.USE_CASE_REVIEW_TAP,
+        elif backend.firmware.device == "flex" or backend.firmware.device == "stax":
+            navigator.navigate_until_text_and_compare(NavInsID.SWIPE_CENTER_TO_LEFT,
                                                       [NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS],
                                                       "Hold to sign",
                                                       ROOT_SCREENSHOT_PATH,
@@ -130,7 +129,7 @@ def test_arbitrary_scripts_refused(backend, firmware, navigator, test_name):
                                                       text="Understood, abort..",
                                                       path=ROOT_SCREENSHOT_PATH,
                                                       test_case_name=test_name)
-        elif backend.firmware.device == "stax":
+        elif backend.firmware.device == "stax" or backend.firmware.device == "flex":
             nav_ins = [NavInsID.USE_CASE_CHOICE_CONFIRM,
                        NavInsID.USE_CASE_SETTINGS_MULTI_PAGE_EXIT]
             navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name + "_0", nav_ins)
@@ -138,7 +137,7 @@ def test_arbitrary_scripts_refused(backend, firmware, navigator, test_name):
     assert backend.last_async_response.status == 0x6985 # Deny error
     assert backend.last_async_response.data == b""
 
-    if backend.firmware.device == "stax":
+    if backend.firmware.device == "stax" or backend.firmware.device == "flex":
         with client.sign_vote_tx(bip44_path=bip44_path,
                                  transaction=tx,
                                  network_magic=magic):

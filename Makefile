@@ -22,7 +22,7 @@ endif
 include $(BOLOS_SDK)/Makefile.defines
 
 APP_LOAD_PARAMS = --curve secp256r1
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
 APP_LOAD_PARAMS += --appFlags 0x200  # APPLICATION_FLAG_BOLOS_SETTINGS
 else
 APP_LOAD_PARAMS += --appFlags 0x000
@@ -32,14 +32,16 @@ APP_LOAD_PARAMS += $(COMMON_LOAD_PARAMS)
 
 APPNAME      = "NEO N3"
 APPVERSION_M = 0
-APPVERSION_N = 3
-APPVERSION_P = 3
+APPVERSION_N = 4
+APPVERSION_P = 0
 APPVERSION   = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
 
 ifeq ($(TARGET_NAME),TARGET_NANOS)
     ICONNAME=icons/nanos_app_neo.gif
 else ifeq ($(TARGET_NAME),TARGET_STAX)
     ICONNAME=icons/stax_app_neo.gif
+else ifeq ($(TARGET_NAME),TARGET_FLEX)
+    ICONNAME=icons/flex_app_neo.gif
 else
     ICONNAME=icons/nanox_app_neo.gif
 endif
@@ -58,7 +60,7 @@ DEFINES += BLE_SEGMENT_SIZE=32
 DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
 # Bluetooth
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
     DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000 HAVE_BLE_APDU
 endif
 
@@ -70,7 +72,7 @@ else
 endif
 
 # Graphical lib
-ifeq ($(TARGET_NAME),TARGET_STAX)
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += NBGL_QRCODE
     SDK_SOURCE_PATH += qrcode
 else
@@ -123,11 +125,11 @@ include $(BOLOS_SDK)/Makefile.glyphs
 APP_SOURCE_PATH += src
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl
 
-ifneq ($(TARGET_NAME),TARGET_STAX)
+ifneq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
 SDK_SOURCE_PATH  += lib_ux
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
 endif
 

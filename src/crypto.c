@@ -78,26 +78,24 @@ int crypto_sign_tx() {
 
     // The data we need to hash is the network magic (uint32_t) + sha256(signed data portion of TX)
     // the latter is stored in tx_info.hash
-    uint8_t data[36];
-    memcpy(data, (void *) &G_context.network_magic, 4);
-    memcpy(&data[4], G_context.tx_info.hash, sizeof(G_context.tx_info.hash));
+    memcpy(G_context.tx_info.raw_tx, (void *) &G_context.network_magic, 4);
+    memcpy(G_context.tx_info.raw_tx + 4, G_context.tx_info.hash, 32);
 
     // Hash the data before signing
-    uint8_t message_hash[32] = {0};
     cx_sha256_t msg_hash;
     cx_sha256_init(&msg_hash);
     CX_CHECK(cx_hash_no_throw((cx_hash_t *) &msg_hash,
                               CX_LAST /*mode*/,
-                              data /* data in */,
-                              sizeof(data) /* data in len */,
-                              message_hash /* hash out*/,
-                              sizeof(message_hash) /* hash out len */));
+                              G_context.tx_info.raw_tx /* data in */,
+                              sizeof(G_context.network_magic) + sizeof(G_context.tx_info.hash) /* data in len */,
+                              G_context.tx_info.hash /* hash out*/,
+                              sizeof(G_context.tx_info.hash) /* hash out len */));
 
     CX_CHECK(cx_ecdsa_sign_no_throw(&private_key,
                                     CX_RND_RFC6979 | CX_LAST,
                                     CX_SHA256,
-                                    message_hash,
-                                    sizeof(message_hash),
+                                    G_context.tx_info.hash,
+                                    sizeof(G_context.tx_info.hash),
                                     G_context.tx_info.signature,
                                     &sig_len,
                                     NULL));

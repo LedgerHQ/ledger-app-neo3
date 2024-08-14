@@ -116,47 +116,42 @@ static void ui_menu_about() {
 
 #else
 
-static const char* const info_types[] = {"Version", DISPLAYABLE_APPNAME};
-static const char* const info_contents[] = {APPVERSION, "(c) 2021 COZ Inc"};
+#define INFO_CONTENT_SIZE 2
+
+static const char* const info_types[INFO_CONTENT_SIZE] = {"Version", DISPLAYABLE_APPNAME};
+static const char* const info_contents[INFO_CONTENT_SIZE] = {APPVERSION, "(c) 2021 COZ Inc"};
+
+static const nbgl_contentInfoList_t infoList = {
+    .nbInfos = INFO_CONTENT_SIZE,
+    .infoTypes = info_types,
+    .infoContents = info_contents,
+};
 
 static void quit_app_callback(void) {
     os_sched_exit(-1);
 }
 
-#define NB_SETTINGS_SWITCHES 1
-static nbgl_layoutSwitch_t G_switches[NB_SETTINGS_SWITCHES];
+// Settings
 
+#define SETTING_CONTENTS_NB 1
+#define SETTINGS_SWITCHES_NB 1
 enum {
     SWITCH_CONTRACT_DATA_SET_TOKEN = FIRST_USER_TOKEN,
 };
 
-static bool settings_nav_callback(uint8_t page, nbgl_pageContent_t* content) {
-    if (page == 0) {
-        content->type = INFOS_LIST;
-        content->infosList.nbInfos = ARRAY_COUNT(info_types);
-        content->infosList.infoTypes = info_types;
-        content->infosList.infoContents = info_contents;
-    } else if (page == 1) {
-        content->type = SWITCHES_LIST;
-        content->switchesList.nbSwitches = NB_SETTINGS_SWITCHES;
-        content->switchesList.switches = G_switches;
-    } else {
-        return false;
-    }
+static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
 
-    return true;
-}
+static void controls_callback(int token, uint8_t index, int page) {
 
-static void ui_menu_main_nbgl(void);
-void ui_menu_settings(void);
-
-static void settings_controls_callback(int token, uint8_t index) {
-    bool new_setting;
+    UNUSED(page);
     UNUSED(index);
+
+    bool new_setting;
+
     switch (token) {
         case SWITCH_CONTRACT_DATA_SET_TOKEN:
-            G_switches[0].initState = !(G_switches[0].initState);
-            new_setting = (G_switches[0].initState == ON_STATE);
+            switches[0].initState = !(switches[0].initState);
+            new_setting = (switches[0].initState == ON_STATE);
             nvm_write((void*) &N_storage.scriptsAllowed, &new_setting, 1);
             break;
         default:
@@ -165,27 +160,45 @@ static void settings_controls_callback(int token, uint8_t index) {
     }
 }
 
-void ui_menu_settings(void) {
-    G_switches[0].text = "Contract scripts";
-    G_switches[0].subText = "Allow contract scripts";
-    G_switches[0].token = SWITCH_CONTRACT_DATA_SET_TOKEN;
-    G_switches[0].tuneId = TUNE_TAP_CASUAL;
-    if (N_storage.scriptsAllowed) {
-        G_switches[0].initState = ON_STATE;
-    } else {
-        G_switches[0].initState = OFF_STATE;
+static const nbgl_content_t contents[SETTING_CONTENTS_NB] = {
+    {
+        .type = SWITCHES_LIST,
+        .content.switchesList.nbSwitches = SETTINGS_SWITCHES_NB,
+        .content.switchesList.switches = switches,
+        .contentActionCallback = controls_callback
     }
-    nbgl_useCaseSettings(DISPLAYABLE_APPNAME " settings",
-                         0,
-                         2,
-                         false,
-                         ui_menu_main_nbgl,
-                         settings_nav_callback,
-                         settings_controls_callback);
+};
+
+static const nbgl_genericContents_t settingContents = {
+    .callbackCallNeeded = false,
+    .contentsList = contents,
+    .nbContents = 1
+};
+
+void ui_menu_settings(bool confirm) {
+    switches[0].text = "Contract scripts";
+    switches[0].subText = "Allow contract scripts";
+    switches[0].token = SWITCH_CONTRACT_DATA_SET_TOKEN;
+    switches[0].tuneId = TUNE_TAP_CASUAL;
+    if (N_storage.scriptsAllowed) {
+        switches[0].initState = ON_STATE;
+    } else {
+        switches[0].initState = OFF_STATE;
+    }
+    
+    nbgl_useCaseHomeAndSettings(DISPLAYABLE_APPNAME, 
+                                &C_icon_neo_n3_64x64, 
+                                NULL, 
+                                (confirm ? 0 : INIT_HOME_PAGE), 
+                                &settingContents, 
+                                &infoList, 
+                                NULL, 
+                                quit_app_callback);
 }
 
+
 static void ui_menu_main_nbgl(void) {
-    nbgl_useCaseHome(DISPLAYABLE_APPNAME, &C_icon_neo_n3_64x64, NULL, true, ui_menu_settings, quit_app_callback);
+    ui_menu_settings(false);
 }
 #endif
 
