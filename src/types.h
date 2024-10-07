@@ -60,10 +60,11 @@ typedef enum {
  * Structure for transaction information context.
  */
 typedef struct {
-    union {
-        uint8_t raw_tx[MAX_TRANSACTION_LEN];  /// Raw transaction serialized
-        uint8_t script_hash[32];
-    };
+    uint8_t raw_tx[MAX_TRANSACTION_LEN];  /// Raw transaction serialized
+#if !defined(TARGET_NANOS)
+    uint8_t script_hash[32];
+#endif
+
     size_t raw_tx_len;                    /// Length of raw transaction
     transaction_t transaction;            /// Structured transaction
 
