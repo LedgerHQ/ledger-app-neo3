@@ -128,7 +128,6 @@ static void switch_settings_display_script() {
     uint8_t value = (N_storage.showScriptHash ? 0 : 1);
     nvm_write((void*) &N_storage.showScriptHash, (void*) &value, sizeof(uint8_t));
     display_settings(&ux_settings_display_script);
-
 }
 #endif
 
@@ -163,10 +162,11 @@ static void quit_app_callback(void) {
 
 // Settings
 
-#define SETTING_CONTENTS_NB 1
-#define SETTINGS_SWITCHES_NB 1
+#define SETTING_CONTENTS_NB 2
+#define SETTINGS_SWITCHES_NB 2
 enum {
     SWITCH_CONTRACT_DATA_SET_TOKEN = FIRST_USER_TOKEN,
+    SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH
 };
 
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -183,6 +183,11 @@ static void controls_callback(int token, uint8_t index, int page) {
             switches[0].initState = !(switches[0].initState);
             new_setting = (switches[0].initState == ON_STATE);
             nvm_write((void*) &N_storage.scriptsAllowed, &new_setting, 1);
+            break;
+        case SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH:
+            switches[1].initState = !(switches[0].initState);
+            new_setting = (switches[1].initState == ON_STATE);
+            nvm_write((void*) &N_storage.showScriptHash, &new_setting, 1);
             break;
         default:
             PRINTF("Should not happen !");
@@ -215,7 +220,18 @@ void ui_menu_settings(bool confirm) {
     } else {
         switches[0].initState = OFF_STATE;
     }
-    
+
+    switches[1].text = "Transaction script";
+    switches[1].subText = "Display SHA256 of transaction script";
+    switches[1].token = SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH;
+    switches[1].tuneId = TUNE_TAP_CASUAL;
+    if (N_storage.showScriptHash) {
+        switches[1].initState = ON_STATE;
+    } else {
+        switches[1].initState = OFF_STATE;
+    }
+
+
     nbgl_useCaseHomeAndSettings(DISPLAYABLE_APPNAME, 
                                 &C_icon_neo_n3_64x64, 
                                 NULL, 
