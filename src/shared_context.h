@@ -8,12 +8,14 @@
 typedef struct internalStorage_t {
     unsigned char scriptsAllowed;
     unsigned char showScriptHash;
+    unsigned char signerAccountFormat;
     uint8_t initialized;
 } internalStorage_t;
 
 typedef struct settings_strings_t {
     char scriptsAllowed[12];  // Allowed / Not Allowed
     char showScriptHash[6]; // Show / Hide
+    char signerAccountFormat[12]; // Script hash / NEO address
 } settings_strings_t;
 
 extern settings_strings_t strings;

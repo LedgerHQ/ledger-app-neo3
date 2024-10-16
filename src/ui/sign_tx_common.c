@@ -34,7 +34,11 @@ void format_account(const signer_t *s,
                     char *dest_text,
                     size_t dest_text_size) {
     strlcpy(dest_title, "Account", dest_title_size);
-    format_hex(s->account, 20, dest_text, dest_text_size);
+    if (N_storage.signerAccountFormat == 0) {
+        format_hex(s->account, 20, dest_text, dest_text_size);
+    } else {
+        script_hash_to_address(dest_text, dest_text_size, s->account);
+    }
 }
 
 static void strlcat_with_comma(char *dest, const char *text, size_t dest_size, bool *is_first) {
