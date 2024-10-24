@@ -121,10 +121,10 @@ UX_FLOW(ux_settings_flow, &ux_settings_contract_scripts, &ux_settings_display_sc
 #endif
 
 static void display_settings(const ux_flow_step_t* const start_step) {
-    strlcpy(strings.scriptsAllowed, (N_storage.scriptsAllowed ? "Allowed" : "NOT Allowed"), 12);
+    strlcpy(strings.scriptsAllowed, (N_storage.scriptsAllowed ? "Allowed" : "NOT Allowed"), SETTING_SCRIPT_ALLOWED_SIZE);
     #if !defined(TARGET_NANOS)
-    strlcpy(strings.showScriptHash, (N_storage.showScriptHash ? "Show" : "Hide"), 6);
-    strlcpy(strings.signerAccountFormat, (N_storage.signerAccountFormat ? "NEO address" : "Script Hash"), 12);
+    strlcpy(strings.showScriptHash, (N_storage.showScriptHash ? "Show" : "Hide"), SETTING_SCRIPT_HASH_SIZE);
+    strlcpy(strings.signerAccountFormat, (N_storage.signerAccountFormat ? "NEO address" : "Script Hash"), SETTING_SCRIPT_ALLOWED_SIZE);
     #endif
     ux_flow_init(0, ux_settings_flow, start_step);
 }
