@@ -208,6 +208,9 @@ static bool get_next_data(enum e_direction direction) {
         case END: {
             return false;
         }
+        default:
+            // this should never be possible, but if it does happen kill the whole thing
+            os_sched_exit(-1);
     }
 }
 
