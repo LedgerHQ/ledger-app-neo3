@@ -34,7 +34,11 @@ void format_account(const signer_t *s,
                     char *dest_text,
                     size_t dest_text_size) {
     strlcpy(dest_title, "Account", dest_title_size);
-    format_hex(s->account, 20, dest_text, dest_text_size);
+    if (N_storage.signerAccountFormat == 0) {
+        format_hex(s->account, UINT160_LEN, dest_text, dest_text_size);
+    } else {
+        script_hash_to_address(dest_text, dest_text_size, s->account);
+    }
 }
 
 static void strlcat_with_comma(char *dest, const char *text, size_t dest_size, bool *is_first) {
@@ -160,6 +164,13 @@ int start_sign_tx(void) {
              G_context.tx_info.transaction.valid_until_block);
     PRINTF("Valid until: %s\n", G_tx.valid_until_block);
 
+    #if !defined(TARGET_NANOS)
+    memset(G_tx.script_hash, 0, sizeof(G_tx.script_hash));
+    if(format_hex(G_context.tx_info.script_hash, sizeof(G_context.tx_info.script_hash), G_tx.script_hash, sizeof(G_tx.script_hash)) == -1) {
+        return io_send_sw(SW_DISPLAY_SCRIPT_HASH_FAIL);
+    }
+    PRINTF("Script hash: %s\n", G_tx.script_hash);
+    #endif
     start_sign_tx_ui();
 
     return 0;

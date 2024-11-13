@@ -7,6 +7,7 @@
 #define ADDRESS_LEN 34  // base58 encoded address size
 #define UINT160_LEN 20
 #define ECPOINT_LEN 33
+#define SHA256_HASH_LEN 32
 
 /**
  * Maximum signer_t count in a transaction.
