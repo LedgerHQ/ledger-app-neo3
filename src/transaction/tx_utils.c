@@ -11,38 +11,38 @@ typedef union {
     int32_t s32;
     int64_t s64;
 } data;
-data s;
+data size;
 
 void try_parse_transfer_script(buffer_t *script, transaction_t *tx) {
-    if (!buffer_read_u8(script, &s.u8)) return;
+    if (!buffer_read_u8(script, &size.u8)) return;
 
     // first byte should be 0xb (OpCode.PUSHNULL), indicating no data for the Nep17.transfer() 'data' argument
-    if (s.u8 != 0xB) return;
+    if (size.u8 != 0xB) return;
 
-    if (!buffer_read_u8(script, &s.u8)) return;
+    if (!buffer_read_u8(script, &size.u8)) return;
 
     // OpCode.PUSH0 - OpCode.PUSH16
-    if (s.u8 >= 0x10 && s.u8 <= 0x20) {
-        tx->amount = (int64_t) s.u8 - 0x10;
-    } else if (s.u8 == 0x00) {  // OpCode.PUSHINT8
-        if (!buffer_read_s8(script, &s.s8)) return;
-        tx->amount = (int64_t) s.u8;
-    } else if (s.u8 == 0x01) {  // OpCode.PUSHINT16
-        if (!buffer_read_s16(script, &s.s16, LE)) return;
-        tx->amount = (int64_t) s.s16;
-    } else if (s.u8 == 0x2) {  // OpCode.PUSHINT32
-        if (!buffer_read_s32(script, &s.s32, LE)) return;
-        tx->amount = (int64_t) s.s32;
-    } else if (s.u8 == 0x3) {  // OpCode.PUSHINT64
-        if (!buffer_read_s64(script, &s.s64, LE)) return;
-        tx->amount = s.s64;
+    if (size.u8 >= 0x10 && size.u8 <= 0x20) {
+        tx->amount = (int64_t) size.u8 - 0x10;
+    } else if (size.u8 == 0x00) {  // OpCode.PUSHINT8
+        if (!buffer_read_s8(script, &size.s8)) return;
+        tx->amount = (int64_t) size.u8;
+    } else if (size.u8 == 0x01) {  // OpCode.PUSHINT16
+        if (!buffer_read_s16(script, &size.s16, LE)) return;
+        tx->amount = (int64_t) size.s16;
+    } else if (size.u8 == 0x2) {  // OpCode.PUSHINT32
+        if (!buffer_read_s32(script, &size.s32, LE)) return;
+        tx->amount = (int64_t) size.s32;
+    } else if (size.u8 == 0x3) {  // OpCode.PUSHINT64
+        if (!buffer_read_s64(script, &size.s64, LE)) return;
+        tx->amount = size.s64;
     } else {  // we do not support INT128 and INT256 values on Ledger
         return;
     }
 
     // check for destination script hash
-    if (!buffer_read_u16(script, &s.u16, BE)) return;
-    if (s.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
+    if (!buffer_read_u16(script, &size.u16, BE)) return;
+    if (size.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
 
     uint8_t *script_hash;
     script_hash = (uint8_t *) (script->ptr + script->offset);
@@ -52,8 +52,8 @@ void try_parse_transfer_script(buffer_t *script, transaction_t *tx) {
     script_hash_to_address((char *) tx->dst_address, sizeof(tx->dst_address), script_hash);
 
     // check for source script hash
-    if (!buffer_read_u16(script, &s.u16, BE)) return;
-    if (s.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
+    if (!buffer_read_u16(script, &size.u16, BE)) return;
+    if (size.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
     if (!buffer_seek_cur(script, UINT160_LEN)) return;
 
     // clang-format off
@@ -107,17 +107,17 @@ void try_parse_transfer_script(buffer_t *script, transaction_t *tx) {
 }
 
 void try_parse_vote_script(buffer_t *script, transaction_t *tx) {
-    if (!buffer_read_u8(script, &s.u8)) return;
+    if (!buffer_read_u8(script, &size.u8)) return;
 
     // first byte should be 0xb (OpCode.PUSHNULL) when removing a vote, or 0x0C (OpCode.PUSHDATA1) followed by 0x21 (Length 33)
     // indicating a 'vote_to' public key
-    if (s.u8 != 0xB && s.u8 != 0x0C) return;
+    if (size.u8 != 0xB && size.u8 != 0x0C) return;
     
-    if (s.u8 == 0x0B) { // remove vote
+    if (size.u8 == 0x0B) { // remove vote
         tx->is_remove_vote = true;
     } else { // add vote
-        if (!buffer_read_u8(script, &s.u8)) return;
-        if (s.u8 != 0x21) return; // PUSHDATA1 must be followed by 33 bytes of data for the compressed public key
+        if (!buffer_read_u8(script, &size.u8)) return;
+        if (size.u8 != 0x21) return; // PUSHDATA1 must be followed by 33 bytes of data for the compressed public key
 
         uint8_t *public_key;
         public_key = (uint8_t *) (script->ptr + script->offset);
@@ -130,8 +130,8 @@ void try_parse_vote_script(buffer_t *script, transaction_t *tx) {
     }
 
     // check for source script hash
-    if (!buffer_read_u16(script, &s.u16, BE)) return;
-    if (s.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
+    if (!buffer_read_u16(script, &size.u16, BE)) return;
+    if (size.u16 != 0x0C14) return;  // PUSHDATA1 , 20 bytes length for destination script hash
     if (!buffer_seek_cur(script, UINT160_LEN)) return;
 
     // clang-format off

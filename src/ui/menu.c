@@ -35,6 +35,10 @@ static void ui_menu_about();
 
 static void display_settings(const ux_flow_step_t* const start_step);
 static void switch_settings_contract_scripts(void);
+#if !defined(TARGET_NANOS)
+static void switch_settings_display_script(void);
+static void switch_settings_signer_display_format(void);
+#endif
 
 UX_STEP_NOCB(ux_menu_ready_step, pn, {&C_badge_neo, "Wake up NEO.."});
 UX_STEP_NOCB(ux_menu_version_step, bn, {"Version", APPVERSION});
@@ -77,6 +81,27 @@ UX_STEP_CB(
         "in transactions",
         strings.scriptsAllowed
     });
+
+UX_STEP_CB(
+    ux_settings_display_script,
+    bnnn,
+    switch_settings_display_script(),
+    {
+        "Transaction script",
+        "Display script hash",
+        "in transactions",
+        strings.showScriptHash
+    });
+
+UX_STEP_CB(
+    ux_settings_signer_display_format,
+    bnn,
+    switch_settings_signer_display_format(),
+    {
+        "Signer account",
+        "Show as",
+        strings.signerAccountFormat
+    });
 #endif
 
 UX_STEP_CB(
@@ -89,10 +114,18 @@ UX_STEP_CB(
     });
 
 // clang-format on
+#if defined(TARGET_NANOS)
 UX_FLOW(ux_settings_flow, &ux_settings_contract_scripts, &ux_settings_back_step);
+#else
+UX_FLOW(ux_settings_flow, &ux_settings_contract_scripts, &ux_settings_display_script, &ux_settings_signer_display_format, &ux_settings_back_step);
+#endif
 
 static void display_settings(const ux_flow_step_t* const start_step) {
-    strlcpy(strings.scriptsAllowed, (N_storage.scriptsAllowed ? "Allowed" : "NOT Allowed"), 12);
+    strlcpy(strings.scriptsAllowed, (N_storage.scriptsAllowed ? "Allowed" : "NOT Allowed"), SETTING_SCRIPT_ALLOWED_SIZE);
+    #if !defined(TARGET_NANOS)
+    strlcpy(strings.showScriptHash, (N_storage.showScriptHash ? "Show" : "Hide"), SETTING_SCRIPT_HASH_SIZE);
+    strlcpy(strings.signerAccountFormat, (N_storage.signerAccountFormat ? "NEO address" : "Script Hash"), SETTING_SCRIPT_ALLOWED_SIZE);
+    #endif
     ux_flow_init(0, ux_settings_flow, start_step);
 }
 
@@ -101,6 +134,21 @@ static void switch_settings_contract_scripts() {
     nvm_write((void*) &N_storage.scriptsAllowed, (void*) &value, sizeof(uint8_t));
     display_settings(&ux_settings_contract_scripts);
 }
+
+#if !defined(TARGET_NANOS)
+static void switch_settings_display_script() {
+    uint8_t value = (N_storage.showScriptHash ? 0 : 1);
+    nvm_write((void*) &N_storage.showScriptHash, (void*) &value, sizeof(uint8_t));
+    display_settings(&ux_settings_display_script);
+}
+
+static void switch_settings_signer_display_format() {
+    uint8_t value = (N_storage.signerAccountFormat ? 0 : 1);
+    nvm_write((void*) &N_storage.signerAccountFormat, (void*) &value, sizeof(uint8_t));
+    display_settings(&ux_settings_signer_display_format);
+}
+
+#endif
 
 UX_STEP_NOCB(ux_menu_info_step, bn, {"NEO N3 App", "(c) 2021 COZ Inc"});
 UX_STEP_CB(ux_menu_back_step, pb, ui_menu_main(), {&C_icon_back, "Back"});
@@ -133,10 +181,12 @@ static void quit_app_callback(void) {
 
 // Settings
 
-#define SETTING_CONTENTS_NB 1
-#define SETTINGS_SWITCHES_NB 1
+#define SETTING_CONTENTS_NB 3
+#define SETTINGS_SWITCHES_NB 3
 enum {
     SWITCH_CONTRACT_DATA_SET_TOKEN = FIRST_USER_TOKEN,
+    SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH,
+    SWITCH_SIGNER_ACOUNT_DISPLAY_FORMAT,
 };
 
 static nbgl_contentSwitch_t switches[SETTINGS_SWITCHES_NB] = {0};
@@ -153,6 +203,16 @@ static void controls_callback(int token, uint8_t index, int page) {
             switches[0].initState = !(switches[0].initState);
             new_setting = (switches[0].initState == ON_STATE);
             nvm_write((void*) &N_storage.scriptsAllowed, &new_setting, 1);
+            break;
+        case SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH:
+            switches[1].initState = !(switches[1].initState);
+            new_setting = (switches[1].initState == ON_STATE);
+            nvm_write((void*) &N_storage.showScriptHash, &new_setting, 1);
+            break;
+        case SWITCH_SIGNER_ACOUNT_DISPLAY_FORMAT:
+            switches[2].initState = !(switches[2].initState);
+            new_setting = (switches[2].initState == ON_STATE);
+            nvm_write((void*) &N_storage.signerAccountFormat, &new_setting, 1);
             break;
         default:
             PRINTF("Should not happen !");
@@ -185,7 +245,28 @@ void ui_menu_settings(bool confirm) {
     } else {
         switches[0].initState = OFF_STATE;
     }
-    
+
+    switches[1].text = "Transaction script";
+    switches[1].subText = "Display SHA256 of transaction script";
+    switches[1].token = SWITCH_TRANSACTION_DISPLAY_SCRIPT_HASH;
+    switches[1].tuneId = TUNE_TAP_CASUAL;
+    if (N_storage.showScriptHash) {
+        switches[1].initState = ON_STATE;
+    } else {
+        switches[1].initState = OFF_STATE;
+    }
+
+    switches[2].text = "Signer account field";
+    switches[2].subText = "Show as NEO address (default: as script hash)";
+    switches[2].token = SWITCH_SIGNER_ACOUNT_DISPLAY_FORMAT;
+    switches[2].tuneId = TUNE_TAP_CASUAL;
+    if (N_storage.signerAccountFormat) {
+        switches[2].initState = ON_STATE;
+    } else {
+        switches[2].initState = OFF_STATE;
+    }
+
+
     nbgl_useCaseHomeAndSettings(DISPLAYABLE_APPNAME, 
                                 &C_icon_neo_n3_64x64, 
                                 NULL, 
